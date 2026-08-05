@@ -17,7 +17,7 @@ While Randall Munroe's comic joked about recursively computing the Arithmetic Me
 
 ## Usage ( ´ ▽ ` )ﾉ
 
-You can try it live here [Insert your GitHub Pages URL here]
+You can try it live here https://nekonyan.fun/Harmogeothmetic-Meandian/
 
 ### Local Setup
 
