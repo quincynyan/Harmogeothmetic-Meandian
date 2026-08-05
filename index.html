@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Quadthmetic Meandian Calculator (xkcd-style)</title>
+    
+    <!-- xkcd Web Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Chartist CDN for lightweight, stylized graphing -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.js"></script>
+
+    <style>
+        body { 
+            font-family: "Comic Neue", "Arial Black", sans-serif; 
+            max-width: 850px; 
+            margin: 30px auto; 
+            padding: 0 20px; 
+            color: #000; 
+            background-color: #fff;
+            line-height: 1.6; 
+        }
+        
+        /* xkcd Border Sketch Theme */
+        .xkcd-box {
+            border: 3px solid #000;
+            border-radius: 4px 10px 4px 12px;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 4px 4px 0px #000;
+            margin-bottom: 25px;
+        }
+
+        h1 { 
+            font-family: 'Caveat', cursive; 
+            font-size: 3.5rem; 
+            margin: 0 0 10px 0; 
+            text-align: center;
+            transform: rotate(-1deg);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 25px;
+            color: #444;
+        }
+
+        textarea { 
+            width: 100%; 
+            height: 90px; 
+            font-size: 16px; 
+            padding: 12px; 
+            box-sizing: border-box; 
+            border: 3px solid #000; 
+            border-radius: 6px 3px 5px 4px; 
+            font-family: inherit;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        button { 
+            background-color: #fff; 
+            color: #000; 
+            border: 3px solid #000; 
+            padding: 10px 20px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            border-radius: 4px 8px 3px 6px; 
+            cursor: pointer; 
+            box-shadow: 2px 2px 0px #000;
+            transition: all 0.1s ease;
+            font-family: inherit;
+        }
+        
+        button:hover { 
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px #000;
+        }
+
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px #000;
+        }
+
+        #shareBtn { background-color: #e6f4ea; }
+        #exportBtn { background-color: #fef7e0; }
+        .compute-btn { background-color: #000; color: #fff; }
+        .compute-btn:hover { background-color: #222; color: #fff; }
+
+        .result-box { display: none; }
+        
+        .final-val { 
+            font-family: 'Caveat', cursive;
+            font-size: 3rem; 
+            font-weight: bold; 
+            color: #0056b3; 
+            display: inline-block;
+            transform: scale(1.05) rotate(1deg);
+        }
+
+        /* Chart Customizations for Sketchy Look */
+        .chart-container {
+            height: 300px;
+            margin: 25px 0;
+            position: relative;
+        }
+        .ct-series-a .ct-line, .ct-series-a .ct-point { stroke: #e06666 !important; stroke-width: 3px; } /* AM */
+        .ct-series-b .ct-line, .ct-series-b .ct-point { stroke: #6aa84f !important; stroke-width: 3px; } /* GM */
+        .ct-series-c .ct-line, .ct-series-c .ct-point { stroke: #4a86e8 !important; stroke-width: 3px; } /* HM */
+        .ct-series-d .ct-line, .ct-series-d .ct-point { stroke: #f1c232 !important; stroke-width: 3px; } /* Median */
+        .ct-grid { stroke: rgba(0,0,0,0.1) !important; stroke-dasharray: 4px !important; }
+        .ct-label { color: #000 !important; font-family: inherit; font-size: 12px; }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 12px; height: 12px; border: 2px solid #000; display: inline-block; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { border: 2px solid #000; padding: 8px; text-align: left; }
+        th { background-color: #f0f0f0; }
+        
+        .error { color: #cc0000; font-weight: bold; margin-top: 10px; border: 2px dashed #cc0000; padding: 10px; display: none;}
+        .toast { display: none; position: fixed; bottom: 20px; right: 20px; background: #000; color: #fff; padding: 10px 20px; border-radius: 4px; font-size: 14px; z-index: 1000; }
+
+        /* explainxkcd Wiki Style */
+        .wiki-section {
+            font-family: sans-serif;
+            background: #fff;
+            border: 1px solid #a2a9b1;
+            padding: 20px;
+            margin-top: 30px;
+            line-height: 1.6;
+        }
+        .wiki-section h2 {
+            border-bottom: 1px solid #a2a9b1;
+            padding-bottom: 5px;
+            margin-top: 0;
+            font-family: 'Linux Libertine', Georgia, Times, serif;
+            font-weight: normal;
+            font-size: 1.5em;
+        }
+        .wiki-section h3 {
+            font-size: 1.2em;
+            margin-top: 20px;
+            border-bottom: 1px dotted #a2a9b1;
+            padding-bottom: 3px;
+        }
+        .wiki-transcript {
+            background-color: #f9f9f9;
+            border: 1px solid #eaecf0;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .wiki-section a { color: #0645ad; text-decoration: none; }
+        .wiki-section a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="xkcd-box">
+        <h1>The Quadthmetic Meandian</h1>
+        <div class="subtitle">"If you aren't sure whether to use the AM, GM, HM, or Median, just run all four recursively until math collapses completely out of confusion."</div>
+
+        <label for="inputData"><strong>Enter Datapoints:</strong> (Separated by commas, spaces, or mixed text like "15kg, 30m/s")</label>
+        <textarea id="inputData" placeholder="e.g., 10, 25, 45, 95"></textarea>
+        
+        <div class="btn-group">
+            <button class="compute-btn" onclick="runConvergence()">Compute Squeeze</button>
+            <button id="shareBtn" onclick="shareDataset()">Share Dataset URL</button>
+        </div>
+        
+        <div id="errorMessage" class="error"></div>
+    </div>
+
+    <div id="resultWrapper" class="result-box xkcd-box">
+        <div>Unified Singularity Value (10 s.f.): <span id="finalAnswer" class="final-val"></span></div>
+        <div style="font-size: 12px; color: #555; margin-top: 5px;">* Internal engine tracked out to 12 significant figures before pulling emergency brake.</div>
+        
+        <div class="btn-group" style="margin-top: 15px;">
+            <button id="exportBtn" onclick="exportCSV()">Export Cascade Logs (.CSV)</button>
+        </div>
+
+        <h3>The Convergence Trap Visualization</h3>
+        <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:#e06666"></span> AM</div>
+            <div class="legend-item"><span class="dot" style="background:#6aa84f"></span> GM</div>
+            <div class="legend-item"><span class="dot" style="background:#4a86e8"></span> HM</div>
+            <div class="legend-item"><span class="dot" style="background:#f1c232"></span> Median</div>
+        </div>
+        <div id="chartContainer" class="chart-container"></div>
+        
+        <h3>Iteration Step Matrix</h3>
+        <table id="logTable">
+            <thead>
+                <tr>
+                    <th>Generation</th>
+                    <th>Arithmetic (AM)</th>
+                    <th>Geometric (GM)</th>
+                    <th>Harmonic (HM)</th>
+                    <th>Median (Med)</th>
+                </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+        </table>
+    </div>
+
+    <!-- EXPLAINXKCD WIKI SECTION -->
+    <div class="wiki-section">
+        <h2>Explanation</h2>
+        <p>This web tool is an interactive expansion of the concept presented in <a href="https://xkcd.com/2435/" target="_blank">xkcd 2435: Geothmetic Meandian</a>. While Randall Munroe's comic joked about recursively computing the Arithmetic Mean, Geometric Mean, and Median, this tool introduces the <strong>Harmonic Mean</strong> to create a complete 4-mean mathematical squeeze.</p>
+        
+        <h3>Transcript</h3>
+        <div class="wiki-transcript">
+[A chaotic web interface featuring hand-drawn text and input boxes.]
+Heading: The Quadthmetic Meandian
+Caption: "If you aren't sure whether to use the AM, GM, HM, or Median, just run all four recursively until math collapses completely out of confusion."
+[A dynamic graph visually depicting four different lines rapidly pinching together into a single, unified data point.]</div>
+        
+        <h3>The Mathematics</h3>
+        <p>The system calculates four primary measures of central tendency for a given set of positive numbers:</p>
+        <ul>
+            <li><strong>Arithmetic Mean (AM):</strong> The standard average (sum divided by count). Out of the Pythagorean means, this will always return the <em>highest</em> value.</li>
+            <li><strong>Geometric Mean (GM):</strong> The <i>n</i>-th root of the product of all numbers. Useful for calculating compound growth.</li>
+            <li><strong>Harmonic Mean (HM):</strong> The reciprocal of the average of the reciprocals. Useful for averaging rates (like speed). This always returns the <em>lowest</em> value.</li>
+            <li><strong>Median:</strong> The exact middle value of a sorted list.</li>
+        </ul>
+
+        <h3>Why does it converge?</h3>
+        <p>This process is guaranteed to converge to a single number because of the strict inequality of the Pythagorean Means, which dictates that for any non-identical set of positive numbers: <strong>HM &lt; GM &lt; AM</strong>.</p>
+        <p>On every iteration:</p>
+        <ol>
+            <li>The maximum boundary (the Arithmetic Mean) gets pulled down.</li>
+            <li>The minimum boundary (the Harmonic Mean) gets pulled up.</li>
+            <li>The Median behaves as a chaotic anchor that prevents the AM, GM, and HM from cancelling out instantly through algebraic symmetry (which would happen if you only used those three).</li>
+        </ol>
+        <p>Because the new values are always strictly bounded inside the previous generation's minimum and maximum, the dataset acts like a mathematical vise, squeezing the numbers closer and closer until they all equal exactly the same thing.</p>
+    </div>
+
+    <div id="toast" class="toast">Link copied to clipboard!</div>
+
+<script>
+    let globalLogHistory = [];
+
+    // Precision Rounding Configuration
+    function toSF(num, sf) {
+        if (num === 0) return "0";
+        return Number(num.toPrecision(sf)).toString(); 
+    }
+
+    // Input string extraction pipeline 
+    function parseInput(rawInput) {
+        const tokens = rawInput.match(/[-+]?[0-9]*\.?[0-9]+/g) || [];
+        const parsedNumbers = tokens.map(Number).filter(n => !isNaN(n));
+        
+        if (parsedNumbers.length === 0) throw new Error("Error: No real data parsing signatures identified.");
+        if (parsedNumbers.some(n => n <= 0)) throw new Error("Math Exception: GM & HM require non-zero positive scalars.");
+        
+        return parsedNumbers;
+    }
+
+    // Mathematical Core Objects
+    const MathMeans = {
+        am: (arr) => arr.reduce((a, b) => a + b, 0) / arr.length,
+        gm: (arr) => Math.pow(arr.reduce((a, b) => a * b, 1), 1 / arr.length),
+        hm: (arr) => arr.length / arr.reduce((sum, val) => sum + (1 / val), 0),
+        median: (arr) => {
+            const sorted = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+    };
+
+    // Execution Logic Loop
+    function runConvergence() {
+        const errorDiv = document.getElementById("errorMessage");
+        const resultWrapper = document.getElementById("resultWrapper");
+        const logBody = document.getElementById("logBody");
+        
+        errorDiv.style.display = "none";
+        resultWrapper.style.display = "none";
+        logBody.innerHTML = "";
+        globalLogHistory = [];
+
+        let currentDataset;
+        try {
+            currentDataset = parseInput(document.getElementById("inputData").value);
+        } catch (e) {
+            errorDiv.innerText = e.message;
+            errorDiv.style.display = "block";
+            return;
+        }
+
+        let iteration = 1;
+        const maxIterations = 200;
+        let converged = false;
+        let finalDisplayValue = "";
+
+        let amHistory = [], gmHistory = [], hmHistory = [], medHistory = [], labelHistory = [];
+
+        while (iteration <= maxIterations && !converged) {
+            const nextAM = MathMeans.am(currentDataset);
+            const nextGM = MathMeans.gm(currentDataset);
+            const nextHM = MathMeans.hm(currentDataset);
+            const nextMed = MathMeans.median(currentDataset);
+
+            const am10 = toSF(nextAM, 10);
+            const gm10 = toSF(nextGM, 10);
+            const hm10 = toSF(nextHM, 10);
+            const med10 = toSF(nextMed, 10);
+
+            // Save to logs
+            globalLogHistory.push({ iter: iteration, am: am10, gm: gm10, hm: hm10, med: med10 });
+            amHistory.push(nextAM);
+            gmHistory.push(nextGM);
+            hmHistory.push(nextHM);
+            medHistory.push(nextMed);
+            labelHistory.push(iteration);
+
+            // Print table row
+            const row = document.createElement("tr");
+            row.innerHTML = `<td>Gen ${iteration}</td><td>${am10}</td><td>${gm10}</td><td>${hm10}</td><td>${med10}</td>`;
+            logBody.appendChild(row);
+
+            // Check for convergence
+            if (am10 === gm10 && gm10 === hm10 && hm10 === med10) {
+                converged = true;
+                finalDisplayValue = am10;
+                break;
+            }
+
+            currentDataset = [nextAM, nextGM, nextHM, nextMed];
+            iteration++;
+        }
+
+        document.getElementById("finalAnswer").innerText = finalDisplayValue;
+        resultWrapper.style.display = "block";
+
+        // Render the graph
+        new Chartist.Line('#chartContainer', {
+            labels: labelHistory,
+            series: [amHistory, gmHistory, hmHistory, medHistory]
+        }, {
+            fullWidth: true,
+            chartPadding: { right: 20 },
+            lineSmooth: Chartist.Interpolation.none()
+        });
+    }
+
+    // CSV Logging Interface Export System
+    function exportCSV() {
+        if (globalLogHistory.length === 0) return;
+        let csvContent = "data:text/csv;charset=utf-8,Generation,Arithmetic Mean,Geometric Mean,Harmonic Mean,Median\n";
+        
+        globalLogHistory.forEach(r => {
+            csvContent += `${r.iter},${r.am},${r.gm},${r.hm},${r.med}\n`;
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "quadthmetic_meandian_cascade.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Deep Linking Share Engine Mapping
+    function shareDataset() {
+        const inputVal = document.getElementById("inputData").value;
+        if(!inputVal.trim()) return;
+        
+        const url = new URL(window.location.href);
+        url.searchParams.set('data', btoa(unescape(encodeURIComponent(inputVal))));
+        
+        navigator.clipboard.writeText(url.href).then(() => {
+            const toast = document.getElementById("toast");
+            toast.style.display = "block";
+            setTimeout(() => { toast.style.display = "none"; }, 2500);
+        });
+    }
+
+    // Auto-run from shared links
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedData = urlParams.get('data');
+        if (encodedData) {
+            try {
+                const decodedData = decodeURIComponent(escape(atob(encodedData)));
+                document.getElementById("inputData").value = decodedData;
+                runConvergence();
+            } catch (e) {
+                console.error("Payload decompression failed.", e);
+            }
+        }
+    }
+</script>
+</body>
+</html>
